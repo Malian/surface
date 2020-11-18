@@ -4,7 +4,7 @@ defmodule Surface.Constructs.For do
 
   ## Examples
   ```
-  <For each={{ item <- @items }} />
+  <For each={{ item <- @items }}>
     <a href={{ item.to }}>{{item.label}}</a>
     <Icon name="cheveron_left" />
   </For>
