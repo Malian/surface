@@ -369,4 +369,58 @@ defmodule Surface.Constructs.IfTest do
       end)
     end
   end
+
+  describe "invalid sub blocks order" do
+    test "#else must be the last sub block if any" do
+      code =
+        quote do
+          ~H"""
+          <#if condition={false}>
+          IF
+          <#elseif condition={true}>
+          ELSEIF
+          <#elseif condition={true}>
+          ELSEIF
+          <#elseif condition={true}>
+          ELSEIF
+          <#else>
+          ELSE
+          <#elseif condition={true}>
+          ELSEIF
+          </#if>
+          """
+        end
+
+      message = ~S(code:9: <#else> sub block must not appear before <#elseif>)
+
+      assert_raise(CompileError, message, fn ->
+        compile_surface(code)
+      end)
+    end
+
+    test "#else must appear only once if any" do
+      code =
+        quote do
+          ~H"""
+          <#if condition={false}>
+          IF
+          <#elseif condition={true}>
+          ELSEIF
+          <#else>
+          ELSE 1
+          <#else>
+          ELSE 2
+          <#else>
+          ELSE 3
+          </#if>
+          """
+        end
+
+      message = ~S(code:7: <#else> sub block must only appear once, 3 given)
+
+      assert_raise(CompileError, message, fn ->
+        compile_surface(code)
+      end)
+    end
+  end
 end

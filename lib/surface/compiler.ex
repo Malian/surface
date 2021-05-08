@@ -300,6 +300,8 @@ defmodule Surface.Compiler do
     default = %AST.AttributeExpr{value: false, original: "", meta: node_meta}
     condition = attribute_value_as_ast(attributes, "condition", default, compile_meta)
 
+    validate_if_elseif_else_constructs!(children, meta)
+
     [if_children, else_children] =
       case children do
         [{:default, [], default, _}, {"#else", _, _, _} = else_block] ->
@@ -1041,6 +1043,37 @@ defmodule Surface.Compiler do
       """
 
       IOHelper.warn(message, compile_meta.caller, fn _ -> line end)
+    end
+  end
+
+  defp validate_if_elseif_else_constructs!([_]), do: nil
+  defp validate_if_elseif_else_constructs!([_, _]), do: nil
+
+  defp validate_if_elseif_else_constructs!(
+         [
+           {:default, _, _, _},
+           {"#else", _, _, else_meta},
+           {"#elseif", _, _, _} | _
+         ],
+         meta
+       ) do
+    IOHelper.compile_error(
+      "<#else> sub block must not appear before <#elseif>",
+      meta.file,
+      else_meta.line
+    )
+  end
+
+  defp validate_if_elseif_else_constructs!(children, meta) do
+    else_sub_blocks = Enum.filter(children, &match?({"#else", _, _, _}, &1))
+    count_else_sub_blocks = length(else_sub_blocks)
+
+    if count_else_sub_blocks > 1 do
+      IOHelper.compile_error(
+        "<#else> sub block must only appear once, #{count_else_sub_blocks} given",
+        meta.file,
+        elem(Enum.at(else_sub_blocks, 1), 3).line
+      )
     end
   end
 end
